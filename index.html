@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMV MotoGP Setup</title>
+    <link rel="manifest" href='data:application/json;charset=utf-8,{"name":"VMV MotoGP Setup","short_name":"VMV Setup","start_url":"./","display":"standalone","background_color":"%230a0a0a","theme_color":"%23ff3333","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3790/3790155.png","sizes":"512x512","type":"image/png"}]}'>
+    <meta name="theme-color" content="#ff3333">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0a0a0a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 12px; padding-bottom: 90px; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 12px; }
+        h2 { color: #ff3333; margin: 0; font-size: 18px; }
+        .sub-header { font-size: 11px; color: #888; margin-top: 2px; }
+        .btn-connect { background: transparent; border: 1px solid #ff3333; color: #ff3333; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .nav-tabs { display: flex; background: #151515; padding: 4px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #222; gap: 4px; }
+        .nav-tab { flex: 1; padding: 8px 4px; text-align: center; background: transparent; color: #aaa; border: none; cursor: pointer; font-weight: bold; font-size: 11px; border-radius: 6px; }
+        .nav-tab.active { background: #ff3333; color: #fff; }
+        .tab-content { display: none !important; }
+        .tab-content.active { display: block !important; }
+        .card { background: #1a1a1a; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #252525; }
+        .card h3 { margin-top: 0; font-size: 15px; color: #fff; }
+        .section-title { color: #ff3333; font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px; text-transform: uppercase; }
+        label { display: block; margin-top: 6px; font-size: 11px; color: #bbb; }
+        select, input, textarea, button { width: 100%; margin-top: 3px; margin-bottom: 6px; padding: 8px; border-radius: 6px; border: 1px solid #333; background: #252525; color: #fff; box-sizing: border-box; font-size: 12px; }
+        button.action-btn { background: #ff3333; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; font-size: 14px; }
+        button.action-btn:hover { background: #e02e2e; }
+        .ai-box { background: #252525; padding: 12px; border-radius: 6px; border-left: 4px solid #ff3333; white-space: pre-line; font-size: 12px; line-height: 1.4; margin-top: 10px; }
+        .sub-nav-coach { display: flex; gap: 6px; margin-bottom: 12px; }
+        .sub-coach-btn { flex: 1; padding: 6px; font-size: 11px; background: #252525; border: 1px solid #333; color: #aaa; border-radius: 6px; cursor: pointer; }
+        .sub-coach-btn.active { background: #ff3333; color: #fff; border-color: #ff3333; }
+        .coach-sub-view { display: none; }
+        .coach-sub-view.active { display: block; }
+        .checkbox-group { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; margin-bottom: 8px; background: #222; padding: 8px; border-radius: 6px; border: 1px solid #333; max-height: 160px; overflow-y: auto; }
+        .checkbox-group label { display: flex; align-items: center; gap: 8px; color: #ddd; font-size: 11px; margin-top: 0; cursor: pointer; }
+        .checkbox-group input { width: auto; margin: 0; }
+        .setup-card { background: #252525; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #333; font-size: 11px; }
+        .setup-card h4 { margin: 0 0 4px 0; color: #ff3333; font-size: 13px; }
+        .row { display: flex; gap: 8px; }
+        .col { flex: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div>
+            <h2>VMV MOTOGP SETUP</h2>
+            <div class="sub-header">PWA - 22 Circuits & Supabase</div>
+        </div>
+        <button id="btnConnect" class="btn-connect">Se connecter</button>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="nav-tab active" id="btn-setups">Setups</button>
+        <button class="nav-tab" id="btn-creer">+ Partager</button>
+        <button class="nav-tab" id="btn-coach">🏍️ Coach IA</button>
+        <button class="nav-tab" id="btn-profil">👤 Profil</button>
+    </div>
+
+    <!-- 1. SETUPS -->
+    <div id="tab-setups" class="tab-content active">
+        <div class="card">
+            <h3>🌐 Set-ups Communautaires</h3>
+            <label>Filtrer par moto ou auteur :</label>
+            <input type="text" id="filtreInput" placeholder="Ex: Ducati, Rossi...">
+            <label>Circuit :</label>
+            <select id="filtreCircuitSelect">
+                <option value="">Tous les circuits (22)</option>
+                <option value="Losail">Losail (Qatar)</option>
+                <option value="Mandalika">Mandalika (Indonésie)</option>
+                <option value="Termas de Río Hondo">Termas de Río Hondo (Argentine)</option>
+                <option value="COTA">COTA / Austin (Amériques)</option>
+                <option value="Portimão">Portimão (Portugal)</option>
+                <option value="Jerez">Jerez (Espagne)</option>
+                <option value="Le Mans">Le Mans (France)</option>
+                <option value="Mugello">Mugello (Italie)</option>
+                <option value="Catalogne">Catalogne (Espagne)</option>
+                <option value="Sachsenring">Sachsenring (Allemagne)</option>
+                <option value="Assen">Assen (Pays-Bas)</option>
+                <option value="KymiRing">KymiRing (Finlande)</option>
+                <option value="Silverstone">Silverstone (Grande-Bretagne)</option>
+                <option value="Red Bull Ring">Red Bull Ring (Autriche)</option>
+                <option value="Aragon">Aragon (Espagne)</option>
+                <option value="Misano">Misano (Saint-Marin)</option>
+                <option value="Motegi">Motegi (Japon)</option>
+                <option value="Buriram">Buriram / Thaïlande</option>
+                <option value="Phillip Island">Phillip Island (Australie)</option>
+                <option value="Sepang">Sepang (Malaisie)</option>
+                <option value="Valence">Valence (Espagne)</option>
+                <option value="Laguna Seca">Laguna Seca (USA)</option>
+            </select>
+            <div id="listeSetups" style="margin-top: 10px;">Chargement des setups communautaires...</div>
+        </div>
+    </div>
+
+    <!-- 2. PARTAGER -->
+    <div id="tab-creer" class="tab-content">
+        <div class="card">
+            <h3>➕ Partager un Set-up Intégral</h3>
+            <form id="formSetup">
+                <label>Votre Pseudo :</label>
+                <input type="text" id="auteurInput" placeholder="Ex: Rossi46" required>
+                <div class="row">
+                    <div class="col"><label>Moto :</label><input type="text" id="motoInput" placeholder="Ex: Ducati" required></div>
+                    <div class="col"><label>Circuit :</label>
+                        <select id="circuitNomInput" required>
+                            <option value="Losail">Losail (Qatar)</option>
+                            <option value="Mandalika">Mandalika (Indonésie)</option>
+                            <option value="Termas de Río Hondo">Termas de Río Hondo (Argentine)</option>
+                            <option value="COTA">COTA / Austin (Amériques)</option>
+                            <option value="Portimão">Portimão (Portugal)</option>
+                            <option value="Jerez">Jerez (Espagne)</option>
+                            <option value="Le Mans">Le Mans (France)</option>
+                            <option value="Mugello">Mugello (Italie)</option>
+                            <option value="Catalogne">Catalogne (Espagne)</option>
+                            <option value="Sachsenring">Sachsenring (Allemagne)</option>
+                            <option value="Assen">Assen (Pays-Bas)</option>
+                            <option value="KymiRing">KymiRing (Finlande)</option>
+                            <option value="Silverstone">Silverstone (Grande-Bretagne)</option>
+                            <option value="Red Bull Ring">Red Bull Ring (Autriche)</option>
+                            <option value="Aragon">Aragon (Espagne)</option>
+                            <option value="Misano">Misano (Saint-Marin)</option>
+                            <option value="Motegi">Motegi (Japon)</option>
+                            <option value="Buriram">Buriram / Thaïlande</option>
+                            <option value="Phillip Island">Phillip Island (Australie)</option>
+                            <option value="Sepang">Sepang (Malaisie)</option>
+                            <option value="Valence">Valence (Espagne)</option>
+                            <option value="Laguna Seca">Laguna Seca (USA)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-title">Pneumatiques</div>
+                <div class="row">
+                    <div class="col"><label>Avant</label><select id="pneuAvant"><option value="Soft">Soft</option><option value="Medium" selected>Medium</option><option value="Hard">Hard</option></select></div>
+                    <div class="col"><label>Arrière</label><select id="pneuArriere"><option value="Soft">Soft</option><option value="Medium" selected>Medium</option><option value="Hard">Hard</option></select></div>
+                </div>
+
+                <div class="section-title">Suspension Avant</div>
+                <div class="row">
+                    <div class="col"><label>Précharge</label><input type="number" id="suspAvPre" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Huile</label><input type="number" id="suspAvHui" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Ressort</label><input type="number" id="suspAvRes" value="4" min="1" max="7"></div>
+                </div>
+                <div class="row">
+                    <div class="col"><label>Compression</label><input type="number" id="suspAvCom" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Extension</label><input type="number" id="suspAvExt" value="4" min="1" max="7"></div>
+                </div>
+
+                <div class="section-title">Suspension Arrière</div>
+                <div class="row">
+                    <div class="col"><label>Précharge</label><input type="number" id="suspArPre" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Ressort</label><input type="number" id="suspArRes" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Comp. Lente</label><input type="number" id="suspArCL" value="4" min="1" max="7"></div>
+                </div>
+                <div class="row">
+                    <div class="col"><label>Comp. Rapide</label><input type="number" id="suspArCR" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Extension</label><input type="number" id="suspArExt" value="4" min="1" max="7"></div>
+                </div>
+
+                <div class="section-title">Freins</div>
+                <div class="row">
+                    <div class="col"><label>Frein Avant</label><select id="freinAvant"><option value="340mm Standard">340mm Standard</option><option value="340mm High Mass">340mm High Mass</option><option value="355mm">355mm</option></select></div>
+                    <div class="col"><label>Frein Arrière</label><select id="freinArriere"><option value="220mm Standard">220mm Standard</option><option value="Carbone">Carbone</option></select></div>
+                </div>
+
+                <div class="section-title">Électronique / ECU</div>
+                <div class="row">
+                    <div class="col"><label>TCS (Traction)</label><input type="number" id="ecuTcs" value="3" min="1" max="5"></div>
+                    <div class="col"><label>Anti-Wheelie</label><input type="number" id="ecuAw" value="3" min="1" max="5"></div>
+                    <div class="col"><label>Frein Moteur (EBS)</label><input type="number" id="ecuEbs" value="3" min="1" max="5"></div>
+                </div>
+
+                <div class="section-title">Géométrie</div>
+                <div class="row">
+                    <div class="col"><label>Angle Chasse</label><input type="number" id="geoCha" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Déport</label><input type="number" id="geoDep" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Plaque Col.</label><input type="number" id="geoPla" value="4" min="1" max="7"></div>
+                    <div class="col"><label>Bras oscillant</label><input type="number" id="geoBra" value="4" min="1" max="7"></div>
+                </div>
+
+                <button type="submit" class="action-btn">Publier le Setup sur le Cloud</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. COACH IA EXTRÊME -->
+    <div id="tab-coach" class="tab-content">
+        <div class="card">
+            <h3>👑 Coach IA Extrême (Ingénieur Piste Radical)</h3>
+            <div class="sub-nav-coach">
+                <button class="sub-coach-btn active" id="btnCoachRapide">⚡ Coach Rapide</button>
+                <button class="sub-coach-btn" id="btnCoachComplet">🚀 Générateur Extrême</button>
+            </div>
+
+            <!-- COACH RAPIDE -->
+            <div id="viewCoachRapide" class="coach-sub-view active">
+                <label>Phase de pilotage :</label>
+                <select id="phaseSelect">
+                    <option value="Entree">Entrée de virage (Freinage / Inscription)</option>
+                    <option value="Milieu">Milieu de virage (Sur l'angle / Trajectoire)</option>
+                    <option value="Sortie">Sortie de virage (Accélération / Relance)</option>
+                </select>
+
+                <label>Problème rencontré :</label>
+                <select id="problemeSelect"></select>
+
+                <div id="conseilBox" class="ai-box">Sélectionne un problème...</div>
+            </div>
+
+            <!-- COACH COMPLET EXTRÊME -->
+            <div id="viewCoachComplet" class="coach-sub-view">
+                <label>Choisis ton Circuit (22 tracés) :</label>
+                <select id="aiCircuitNom">
+                    <option value="Losail">Losail (Qatar)</option>
+                    <option value="Mandalika">Mandalika (Indonésie)</option>
+                    <option value="Termas de Río Hondo">Termas de Río Hondo (Argentine)</option>
+                    <option value="COTA">COTA / Austin (Amériques)</option>
+                    <option value="Portimão">Portimão (Portugal)</option>
+                    <option value="Jerez">Jerez (Espagne)</option>
+                    <option value="Le Mans">Le Mans (France)</option>
+                    <option value="Mugello">Mugello (Italie)</option>
+                    <option value="Catalogne">Catalogne (Espagne)</option>
+                    <option value="Sachsenring">Sachsenring (Allemagne)</option>
+                    <option value="Assen">Assen (Pays-Bas)</option>
+                    <option value="KymiRing">KymiRing (Finlande)</option>
+                    <option value="Silverstone">Silverstone (Grande-Bretagne)</option>
+                    <option value="Red Bull Ring">Red Bull Ring (Autriche)</option>
+                    <option value="Aragon">Aragon (Espagne)</option>
+                    <option value="Misano">Misano (Saint-Marin)</option>
+                    <option value="Motegi">Motegi (Japon)</option>
+                    <option value="Buriram">Buriram / Thaïlande</option>
+                    <option value="Phillip Island">Phillip Island (Australie)</option>
+                    <option value="Sepang">Sepang (Malaisie)</option>
+                    <option value="Valence">Valence (Espagne)</option>
+                    <option value="Laguna Seca">Laguna Seca (USA)</option>
+                </select>
+
+                <label>Conditions Météo :</label>
+                <select id="aiMeteo">
+                    <option value="Sec / Chaud">Sec / Piste chaude (Grip max)</option>
+                    <option value="Sec / Frais">Sec / Piste fraîche (Grip moyen)</option>
+                    <option value="Humide / Pluie">Humide / Pluie (Piste glissante)</option>
+                </select>
+
+                <label>Problèmes multiples (Cochez tout ce qui perturbe votre moto) :</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="probMulti" value="stabilite"> Gros manque de stabilité au freinage (Guidonnage/Instabilité)</label>
+                    <label><input type="checkbox" name="probMulti" value="pivoter"> Impossibilité de faire pivoter / La moto est un "camion"</label>
+                    <label><input type="checkbox" name="probMulti" value="patinage"> Patinage massif / Impossible d'ouvrir les gaz en grand</label>
+                    <label><input type="checkbox" name="probMulti" value="elargit"> Élargissement systématique en milieu/sortie de courbe</label>
+                    <label><input type="checkbox" name="probMulti" value="pompage"> Pompage violent de l'arrière à la réaccélération (Squat)</label>
+                    <label><input type="checkbox" name="probMulti" value="blocage_arriere"> Dribble ou blocage intempestif de la roue arrière</label>
+                </div>
+
+                <button type="button" class="action-btn" id="btnGenererSetupAI">Générer le Setup Extrême</button>
+                <div id="setupCompletBox" class="ai-box" style="display:none; margin-top: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. PROFIL -->
+    <div id="tab-profil" class="tab-content">
+        <div class="card" style="text-align: center;">
+            <h3>👤 Profil Pilote (Local)</h3>
+            <label>Votre Pseudo :</label>
+            <input type="text" id="pseudoActifInput" placeholder="Entrez votre pseudo">
+            <button type="button" class="action-btn" id="btnToggleProfil" style="background:#ff3333;">Se connecter</button>
+            <p id="statutSession" style="color: #888; font-size: 11px; margin-top: 8px;">Statut : Déconnecté</p>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            function changerSection(id, btnId) {
+                document.querySelectorAll('.tab-content').forEach(el => { el.classList.remove('active'); el.style.display = 'none'; });
+                document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+                document.getElementById(id).style.display = 'block';
+                document.getElementById(btnId).classList.add('active');
+                if(id === 'tab-setups') chargerSetupsCommunautaires();
+            }
+
+            let supabase = null;
+            try {
+                if (window.supabase) {
+                    supabase = window.supabase.createClient(
+                        'https://glovvsctvjwjtxiaiihu.supabase.co', 
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsb3Z2c2N0dmp3anR4aWFpaWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4NzAxNTUsImV4cCI6MjEwNjQ0NjE1NX0.CcPT-QFfF3mQrH9KxnOpU9Adu4ltCV5FrH4lWULR3Vk'
+                    );
+                }
+            } catch(e) { console.error("Erreur init Supabase", e); }
+
+            const pseudoInput = document.getElementById('pseudoActifInput');
+            const auteurInput = document.getElementById('auteurInput');
+            const btnToggleProfil = document.getElementById('btnToggleProfil');
+            const btnTopConnect = document.getElementById('btnConnect');
+            const statutSession = document.getElementById('statutSession');
+
+            let savedPseudo = localStorage.getItem('vmv_pseudo');
+            let isConnected = localStorage.getItem('vmv_connected') === 'true';
+
+            if (savedPseudo) {
+                pseudoInput.value = savedPseudo;
+                auteurInput.value = savedPseudo;
+            }
+
+            function updateProfilUI() {
+                if (isConnected && pseudoInput.value.trim() !== "") {
+                    pseudoInput.disabled = true;
+                    btnToggleProfil.textContent = "Se déconnecter";
+                    btnToggleProfil.style.background = "#333";
+                    btnTopConnect.textContent = "Connecté: " + pseudoInput.value;
+                    btnTopConnect.style.borderColor = "#4da6ff";
+                    btnTopConnect.style.color = "#4da6ff";
+                    statutSession.textContent = "Statut : Connecté en tant que " + pseudoInput.value;
+                    statutSession.style.color = "#4da6ff";
+                } else {
+                    isConnected = false;
+                    pseudoInput.disabled = false;
+                    btnToggleProfil.textContent = "Se connecter";
+                    btnToggleProfil.style.background = "#ff3333";
+                    btnTopConnect.textContent = "Se connecter";
+                    btnTopConnect.style.borderColor = "#ff3333";
+                    btnTopConnect.style.color = "#ff3333";
+                    statutSession.textContent = "Statut : Déconnecté";
+                    statutSession.style.color = "#888";
+                    localStorage.removeItem('vmv_connected');
+                }
+            }
+
+            updateProfilUI();
+
+            btnToggleProfil.addEventListener('click', () => {
+                if (!isConnected) {
+                    if (pseudoInput.value.trim() === "") {
+                        alert("Veuillez entrer un pseudo valide !");
+                        return;
+                    }
+                    isConnected = true;
+                    localStorage.setItem('vmv_connected', 'true');
+                    localStorage.setItem('vmv_pseudo', pseudoInput.value.trim());
+                    auteurInput.value = pseudoInput.value.trim();
+                } else {
+                    isConnected = false;
+                    localStorage.removeItem('vmv_connected');
+                }
+                updateProfilUI();
+            });
+
+            btnTopConnect.addEventListener('click', () => {
+                changerSection('tab-profil', 'btn-profil');
+            });
+
+            pseudoInput.addEventListener('input', () => {
+                if (!isConnected) {
+                    auteurInput.value = pseudoInput.value;
+                    localStorage.setItem('vmv_pseudo', pseudoInput.value);
+                }
+            });
+
+            document.getElementById('formSetup').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!supabase) {
+                    alert("Erreur de connexion à la base de données Supabase.");
+                    return;
+                }
+
+                const titre = document.getElementById('motoInput').value + " - " + document.getElementById('circuitNomInput').value;
+                const moto = document.getElementById('motoInput').value;
+                const circuit = document.getElementById('circuitNomInput').value;
+                const email_auteur = document.getElementById('auteurInput').value;
+                
+                const details = `Pneus: Av[${document.getElementById('pneuAvant').value}] Ar[${document.getElementById('pneuArriere').value}] | ` +
+                                `Susp.Av: Pré:${document.getElementById('suspAvPre').value} Comp:${document.getElementById('suspAvCom').value} | ` +
+                                `Susp.Ar: Pré:${document.getElementById('suspArPre').value} CompL:${document.getElementById('suspArCL').value} | ` +
+                                `ECU: TCS:${document.getElementById('ecuTcs').value} AW:${document.getElementById('ecuAw').value} EBS:${document.getElementById('ecuEbs').value}`;
+
+                const { error } = await supabase.from('setups_publics').insert([{ titre, moto, circuit, details, email_auteur }]);
+
+                if (error) {
+                    alert("Erreur lors de la publication : " + error.message);
+                } else {
+                    alert("Setup publié avec succès sur le cloud communautaire !");
+                    document.getElementById('formSetup').reset();
+                    if(savedPseudo) document.getElementById('auteurInput').value = savedPseudo;
+                    changerSection('tab-setups', 'btn-setups');
+                }
+            });
+
+            // Fonction globale pour supprimer un setup
+            window.supprimerSetup = async function(id) {
+                if (!confirm("Voulez-vous vraiment supprimer ce setup ?")) return;
+                
+                const { error } = await supabase.from('setups_publics').delete().eq('id', id);
+                
+                if (error) {
+                    alert("Erreur lors de la suppression : " + error.message);
+                } else {
+                    alert("Setup supprimé avec succès.");
+                    chargerSetupsCommunautaires();
+                }
+            };
+
+            async function chargerSetupsCommunautaires() {
+                const container = document.getElementById('listeSetups');
+                container.innerHTML = "Chargement des setups...";
+
+                if (!supabase) {
+                    container.innerHTML = "Base de données non connectée.";
+                    return;
+                }
+
+                const filtreCircuit = document.getElementById('filtreCircuitSelect').value;
+                const filtreTexte = document.getElementById('filtreInput').value.toLowerCase();
+
+                let query = supabase.from('setups_publics').select('*').order('created_at', { ascending: false });
+                if (filtreCircuit) query = query.eq('circuit', filtreCircuit);
+
+                const { data, error } = await query;
+
+                if (error) {
+                    container.innerHTML = "Erreur de chargement : " + error.message;
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = "<p style='color:#888; font-size:11px;'>Aucun setup partagé pour l'instant.</p>";
+                    return;
+                }
+
+                let html = "";
+                data.forEach(item => {
+                    if (filtreTexte && !item.moto.toLowerCase().includes(filtreTexte) && !item.email_auteur.toLowerCase().includes(filtreTexte)) {
+                        return;
+                    }
+                    html += `
+                        <div class="setup-card">
+                            <h4>
+                                🏍️ ${item.titre} 
+                                <button onclick="supprimerSetup(${item.id})" style="background:#332222; color:#ff4444; border:1px solid #ff4444; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; float:right;">Supprimer</button>
+                            </h4>
+                            <p style="margin: 4px 0; color:#aaa;">Par : <strong>${item.email_auteur}</strong> | Circuit : <strong>${item.circuit}</strong></p>
+                            <p style="color:#ddd; margin-top:4px;">${item.details}</p>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html || "<p style='color:#888; font-size:11px;'>Aucun résultat correspondant au filtre.</p>";
+            }
+
+            document.getElementById('filtreCircuitSelect').addEventListener('change', chargerSetupsCommunautaires);
+            document.getElementById('filtreInput').addEventListener('input', chargerSetupsCommunautaires);
+
+            document.getElementById('btnCoachRapide').addEventListener('click', () => {
+                document.getElementById('btnCoachRapide').classList.add('active');
+                document.getElementById('btnCoachComplet').classList.remove('active');
+                document.getElementById('viewCoachRapide').classList.add('active');
+                document.getElementById('viewCoachComplet').classList.remove('active');
+            });
+
+            document.getElementById('btnCoachComplet').addEventListener('click', () => {
+                document.getElementById('btnCoachComplet').classList.add('active');
+                document.getElementById('btnCoachRapide').classList.remove('active');
+                document.getElementById('viewCoachComplet').classList.add('active');
+                document.getElementById('viewCoachRapide').classList.remove('active');
+            });
+
+            const problemsByPhase = {
+                Entree: [
+                    { val: "sous_virage", text: "Sous-virage / Ne tourne pas au lâcher de frein" },
+                    { val: "arriere_decroche", text: "L'arrière décroche au freinage / Dribble" },
+                    { val: "instable_frein", text: "Moto trop instable et lourde à l'inscription" }
+                ],
+                Milieu: [
+                    { val: "ferme_trajectoire", text: "La moto élargit et ne tient pas la corde" },
+                    { val: "avant_fuit", text: "Sensation de perte imminente de l'avant sur l'angle" }
+                ],
+                Sortie: [
+                    { val: "patinage", text: "Patinage excessif / Perte de motricité à la réaccélération" },
+                    { val: "wheelie", text: "La moto lève trop de l'avant (Wheelie incontrôlable)" }
+                ]
+            };
+
+            function updateProblemsDropdown() {
+                const phase = document.getElementById('phaseSelect').value;
+                const probSelect = document.getElementById('problemeSelect');
+                probSelect.innerHTML = "";
+                if (problemsByPhase[phase]) {
+                    problemsByPhase[phase].forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.val;
+                        opt.textContent = p.text;
+                        probSelect.appendChild(opt);
+                    });
+                }
+                updateConseilText();
+            }
+
+            function updateConseilText() {
+                const prob = document.getElementById('problemeSelect').value;
+                const box = document.getElementById('conseilBox');
+                let conseils = {
+                    sous_virage: "💡 **Coach Extrême :** Force de compression fourche poussée au max + relèvement radical de l'assiette arrière.",
+                    arriere_decroche: "💡 **Coach Extrême :** Assouplissement complet du frein moteur (EBS) et modification majeure de l'hydraulique arrière.",
+                    instable_frein: "💡 **Coach Extrême :** Fermeté maximale de la précharge avant et disques haute masse obligatoires.",
+                    ferme_trajectoire: "💡 **Coach Extrême :** Libération de l'amortisseur arrière en compression lente pour enrouler la courbe.",
+                    avant_fuit: "💡 **Coach Extrême :** Radeau de sauvetage : Augmentation drastique de l'extension de fourche et pneu Hard.",
+                    patinage: "💡 **Coach Extrême :** Traction Control (TCS) poussé à son paroxysme et verrouillage de la compression arrière.",
+                    wheelie: "💡 **Coach Extrême :** Anti-Wheelie au maximum pour plaquer la roue au sol."
+                };
+                box.innerHTML = conseils[prob] || "💡 **Coach Extrême :** Ajustement dynamique en cours...";
+            }
+
+            function genererSetupCompletAI() {
+                const circuit = document.getElementById('aiCircuitNom').value;
+                const meteo = document.getElementById('aiMeteo').value;
+                
+                const checks = document.querySelectorAll('input[name="probMulti"]:checked');
+                const problemesChoisis = Array.from(checks).map(cb => cb.value);
+
+                const box = document.getElementById('setupCompletBox');
+                
+                let sAvPre = 4, sAvHui = 4, sAvRes = 4, sAvCom = 4, sAvExt = 4;
+                let sArPre = 4, sArRes = 4, sArCL = 4, sArCR = 4, sArExt = 4;
+                let freinAv = "340mm Standard", freinAr = "220mm Standard";
+                let tcs = 3, aw = 3, ebs = 3;
+                let geoCha = 4, geoDep = 4, geoPla = 4, geoBra = 4;
+                let pneuAv = "Medium", pneuAr = "Medium";
+                let noteCircuit = `⚡ *Circuit sélectionné : ${circuit}* - Optimisation de la géométrie et des flux thermiques.`;
+
+                if (circuit === "Mugello") {
+                    freinAv = "340mm High Mass";
+                    sAvPre = 6; sAvCom = 6; sAvExt = 5;
+                } else if (circuit === "Buriram") {
+                    freinAv = "340mm High Mass";
+                    tcs = 4; sArCL = 6; sArCR = 5;
+                } else if (circuit === "Assen" || circuit === "Portimão") {
+                    geoCha = 2; sAvExt = 2; geoDep = 6;
+                } else if (circuit === "Sepang") {
+                    pneuAv = "Hard"; pneuAr = "Medium"; sArRes = 5;
+                } else if (circuit === "Le Mans") {
+                    aw = 4; sAvCom = 6; sArPre = 5;
+                }
+
+                if (meteo.includes("Humide")) {
+                    pneuAv = "Soft"; pneuAr = "Soft";
+                    tcs = 5; aw = 5; ebs = 5;
+                    sAvCom = 1; sArCL = 1; sAvExt = 6; sArExt = 6;
+                } else if (meteo.includes("Frais")) {
+                    sAvCom = Math.max(1, sAvCom - 2);
+                    pneuAr = "Soft";
+                }
+
+                let resumeProblemes = "Aucun problème spécifique (Setup de base ingénieur)";
+                if (problemesChoisis.length > 0) {
+                    resumeProblemes = "";
+                    problemesChoisis.forEach(prob => {
+                        if (prob === "stabilite") {
+                            sAvPre = 7; sAvCom = 7; sAvHui = 6; ebs = 5;
+                            resumeProblemes += "🔥 [STABILITÉ] Fourche verrouillée au maximum (Pré/Comp à 7) + Frein moteur max\n";
+                        }
+                        if (prob === "pivoter") {
+                            geoCha = 1; geoDep = 7; sAvExt = 6;
+                            resumeProblemes += "🔥 [PIVOTEMENT] Chasse abaissée à 1 (ultra incisif) + Déport et extension modifiés\n";
+                        }
+                        if (prob === "patinage") {
+                            tcs = 5; sArCL = 7; sArRes = 6;
+                            resumeProblemes += "🔥 [PATINAGE] TCS au max (5) + Compression lente arrière maximale pour bloquer l'écrasement\n";
+                        }
+                        if (prob === "elargit") {
+                            sArExt = 7; geoPla = 7; sAvCom = Math.min(7, sAvCom + 2);
+                            resumeProblemes += "🔥 [TRAJECTOIRE] Extension arrière et plaque de colonne poussées à 7 pour forcer la corde\n";
+                        }
+                        if (prob === "pompage") {
+                            sArCR = 7; sArRes = 7; sArPre = 6;
+                            resumeProblemes += "🔥 [POMPAGE] Ressort et compression rapide arrière au taquet (7) pour stopper le squat\n";
+                        }
+                        if (prob === "blocage_arriere") {
+                            freinAr = "Carbone"; ebs = 1; sArExt = 2;
+                            resumeProblemes += "🔥 [FREIN AR] Passage disque Carbone + EBS minimal (1) + Assouplissement extension\n";
+                        }
+                    });
+                }
+
+                const clamp = (val) => Math.max(1, Math.min(7, val));
+
+                box.style.display = 'block';
+                box.innerHTML = `🚀 <strong>SETUP IA EXTRÊME & RADICAL : ${circuit.toUpperCase()} (${meteo})</strong>
+                
+                ${noteCircuit}
+                
+                🛠️ <strong>Actions correctives profondes appliquées :</strong>
+                ${resumeProblemes}
+                
+                🛞 <strong>Pneus :</strong> Avant [${pneuAv}] | Arrière [${pneuAr}]
+                ⚙️ <strong>Suspension Avant :</strong> Précharge ${clamp(sAvPre)} | Huile ${clamp(sAvHui)} | Ressort ${clamp(sAvRes)} | Comp ${clamp(sAvCom)} | Ext ${clamp(sAvExt)}
+                ⚙️ <strong>Suspension Arrière :</strong> Précharge ${clamp(sArPre)} | Ressort ${clamp(sArRes)} | Comp. Lente ${clamp(sArCL)} | Comp. Rapide ${clamp(sArCR)} | Ext ${clamp(sArExt)}
+                🛑 <strong>Freins :</strong> Avant [${freinAv}] | Arrière [${freinAr}]
+                ⚡ <strong>ECU :</strong> TCS ${tcs} | Anti-Wheelie ${aw} | Frein Moteur (EBS) ${ebs}
+                🏁 <strong>Géométrie :</strong> Chasse ${clamp(geoCha)} | Déport ${clamp(geoDep)} | Plaque ${clamp(geoPla)} | Bras ${clamp(geoBra)}`;
+            }
+
+            document.getElementById('phaseSelect').addEventListener('change', updateProblemsDropdown);
+            document.getElementById('problemeSelect').addEventListener('change', updateConseilText);
+            document.getElementById('btnGenererSetupAI').addEventListener('click', genererSetupCompletAI);
+
+            document.getElementById('btn-setups').addEventListener('click', () => changerSection('tab-setups', 'btn-setups'));
+            document.getElementById('btn-creer').addEventListener('click', () => changerSection('tab-creer', 'btn-creer'));
+            document.getElementById('btn-coach').addEventListener('click', () => changerSection('tab-coach', 'btn-coach'));
+            document.getElementById('btn-profil').addEventListener('click', () => changerSection('tab-profil', 'btn-profil'));
+
+            updateProblemsDropdown();
+            changerSection('tab-setups', 'btn-setups');
+        });
+    </script>
